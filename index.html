@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>printscreen placeholder</title>
+</head>
+<body>
+<h1>printscreen</h1>
+<p>placeholder</p>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>printscreen – Community Recs Board</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f7f7f5; color: #333; }
+  header { background: #1a1a2e; color: white; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  header h1 { font-size: 1.4rem; font-weight: 700; }
+  header p { font-size: 0.85rem; opacity: 0.7; }
+  .tabs { display: flex; gap: 8px; padding: 16px 24px 0; background: #fff; border-bottom: 2px solid #eee; flex-wrap: wrap; }
+  .tab { padding: 10px 18px; border: none; background: none; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+  .tab.active { color: #e63946; border-bottom-color: #e63946; }
+  .tab:hover { color: #e63946; }
+  .section { display: none; padding: 20px 24px; max-width: 1100px; margin: 0 auto; }
+  .section.active { display: block; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .filter-btn { padding: 6px 14px; border-radius: 20px; border: 2px solid #ddd; background: white; cursor: pointer; font-size: 0.82rem; font-weight: 600; transition: all 0.2s; }
+  .filter-btn.active, .filter-btn:hover { background: #1a1a2e; color: white; border-color: #1a1a2e; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+  .card { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); transition: transform 0.15s; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .card-category { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; }
+  .cat-Photographer { background: #fde8e8; color: #c0392b; }
+  .cat-Ski { background: #e8f4fd; color: #2980b9; }
+  .cat-Activity { background: #e8fde8; color: #27ae60; }
+  .cat-Service { background: #fdf5e8; color: #d68910; }
+  .cat-Resource { background: #f0e8fd; color: #8e44ad; }
+  .cat-Venue { background: #e8fdfd; color: #1a8a8a; }
+  .card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
+  .card h3 a { color: inherit; text-decoration: none; }
+  .card h3 a:hover { text-decoration: underline; color: #e63946; }
+  .card .notes { font-size: 0.85rem; color: #555; margin: 8px 0; line-height: 1.5; }
+  .card .recommenders { font-size: 0.78rem; color: #888; margin-top: 6px; }
+  .card .recommenders strong { color: #555; }
+  .votes { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0; }
+  .vote-btn { display: flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; border: 1.5px solid #ddd; background: white; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; }
+  .vote-btn.up:hover, .vote-btn.up.voted { background: #e8fde8; border-color: #27ae60; color: #27ae60; }
+  .vote-btn.down:hover, .vote-btn.down.voted { background: #fde8e8; border-color: #e63946; color: #e63946; }
+  .vote-names { font-size: 0.72rem; color: #aaa; margin-left: auto; text-align: right; max-width: 120px; line-height: 1.3; }
+  .form-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); max-width: 600px; }
+  .form-card h2 { font-size: 1.2rem; margin-bottom: 16px; font-weight: 700; }
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #555; }
+  input, select, textarea { width: 100%; padding: 9px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 0.9rem; font-family: inherit; outline: none; transition: border 0.2s; }
+  input:focus, select:focus, textarea:focus { border-color: #e63946; }
+  textarea { resize: vertical; min-height: 80px; }
+  .submit-btn { background: #e63946; color: white; border: none; padding: 11px 24px; border-radius: 8px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+  .submit-btn:hover { background: #c0392b; }
+  .request-list { display: flex; flex-direction: column; gap: 12px; }
+  .request-item { background: white; border-radius: 10px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+  .request-item h4 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+  .request-item p { font-size: 0.85rem; color: #666; margin-bottom: 6px; }
+  .request-meta { font-size: 0.75rem; color: #aaa; }
+  .badge { display: inline-block; background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; margin-right: 6px; }
+  .empty { text-align: center; color: #aaa; padding: 40px; font-size: 0.95rem; }
+  .vote-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
+  .vote-modal.open { display: flex; }
+  .vote-modal-box { background: white; border-radius: 14px; padding: 28px; max-width: 340px; width: 90%; text-align: center; }
+  .vote-modal-box h3 { margin-bottom: 10px; font-size: 1.1rem; }
+  .vote-modal-box p { font-size: 0.85rem; color: #666; margin-bottom: 16px; }
+  .vote-modal-box input { margin-bottom: 12px; }
+  .modal-btns { display: flex; gap: 10px; justify-content: center; }
+  .modal-btns button { padding: 9px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; font-size: 0.9rem; }
+  .modal-cancel { background: #eee; color: #555; }
+  .modal-confirm { background: #e63946; color: white; }
+  @media (max-width: 600px) { .section { padding: 16px; } .cards { grid-template-columns: 1fr; } header h1 { font-size: 1.1rem; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>ATX Tech Parents - Group Recs</h1>
+    <p>Crowdsourced recommendations from our WhatsApp community</p>
+  </div>
+</header>
+<div class="tabs">
+  <button class="tab active" onclick="showTab('recs')">Recommendations</button>
+  <button class="tab" onclick="showTab('add')">Add a Rec</button>
+  <button class="tab" onclick="showTab('looking')">Looking For...</button>
+</div>
+<div id="tab-recs" class="section active">
+  <div class="filters" id="filters"></div>
+  <div class="cards" id="cards"></div>
+</div>
+<div id="tab-add" class="section">
+  <div class="form-card">
+    <h2>Add a Recommendation</h2>
+    <div class="form-group"><label>Your Name</label><input type="text" id="rec-name" placeholder="e.g. Sarah H."></div>
+    <div class="form-group"><label>Category</label><select id="rec-cat"><option value="Photographer">Photographer</option><option value="Ski">Ski Resort</option><option value="Activity">Activity / Experience</option><option value="Service">Local Service</option><option value="Venue">Venue</option><option value="Resource">Resource</option><option value="Other">Other</option></select></div>
+    <div class="form-group"><label>Name / Business</label><input type="text" id="rec-biz" placeholder="e.g. Ming Chen Photography"></div>
+    <div class="form-group"><label>Your Notes</label><textarea id="rec-notes" placeholder="Why do you recommend this?"></textarea></div>
+    <div class="form-group"><label>Link (optional)</label><input type="url" id="rec-link" placeholder="https://..."></div>
+    <button class="submit-btn" onclick="submitRec()">Submit</button>
+  </div>
+</div>
+<div id="tab-looking" class="section">
+  <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
+    <div class="form-card" style="flex:1;min-width:280px;">
+      <h2>Post a Request</h2>
+      <div class="form-group"><label>Your Name</label><input type="text" id="req-name" placeholder="e.g. Jon B."></div>
+      <div class="form-group"><label>What are you looking for?</label><input type="text" id="req-title" placeholder="e.g. Pediatric dentist"></div>
+      <div class="form-group"><label>More details</label><textarea id="req-detail" placeholder="Any specifics?"></textarea></div>
+      <button class="submit-btn" onclick="submitRequest()">Post Request</button>
+    </div>
+    <div style="flex:2;min-width:280px;">
+      <h2 style="margin-bottom:14px;font-size:1.1rem;font-weight:700;">Open Requests</h2>
+      <div class="request-list" id="request-list"></div>
+    </div>
+  </div>
+</div>
+<div class="vote-modal" id="vote-modal">
+  <div class="vote-modal-box">
+    <h3 id="modal-title">Cast your vote</h3>
+    <p id="modal-desc">Enter your name to show who voted</p>
+    <input type="text" id="modal-name" placeholder="Your name">
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmVote()">Vote</button>
+    </div>
+  </div>
+</div>
+<script>
+// TODO: Replace hardcoded data with backend (Supabase/Firebase) connected to WhatsApp auth
+let data = {
+  recs: [
+    {id:1,cat:'Photographer',name:'Whit McGuire',notes:'Incredibly talented. Multiple +1s from the group!',link:'https://www.instagram.com/whit.mcguire',recommenders:['Michael cazayoux','Sarah Hollingsworth','Alex Priest'],date:'2/25/2026',up:['Michael cazayoux','Sarah Hollingsworth','Alex Priest'],down:[]},
+    {id:2,cat:'Photographer',name:'Ming Chen Photography',notes:'13K following Austin/NYC photographer.',link:'https://www.instagram.com/mingchenphotography',recommenders:['Marty Pesis Vouch'],date:'2/25/2026',up:['Marty Pesis Vouch'],down:[]},
+    {id:3,cat:'Photographer',name:'Jennifer Najvar Photography',notes:"Austin's premier natural newborn portrait studio.",link:'https://jennifernajvar.com',recommenders:['Zaz Floreani'],date:'2/25/2026',up:['Zaz Floreani'],down:[]},
+    {id:4,cat:'Ski',name:'Deer Valley / Park City',notes:'Family friendly, ski-only resort. Nonstop from Austin to SLC.',link:'https://www.deervalley.com',recommenders:['Jacqueline Lloyds Girl','Belinda Bennett','Adam Lawrence','Javier Molina','Landon'],date:'1/31/2026',up:['Jacqueline Lloyds Girl','Belinda Bennett','Adam Lawrence','Javier Molina','Landon'],down:[]},
+    {id:5,cat:'Ski',name:'Steamboat Springs',notes:'Solid and very family friendly.',link:'https://www.steamboat.com',recommenders:['Adam Lawrence'],date:'1/31/2026',up:['Adam Lawrence'],down:[]},
+    {id:6,cat:'Ski',name:'Powder Mountain',notes:'Hidden gem north of SLC. Wayyy less crowded.',link:'https://www.powdermountain.com',recommenders:['Michael cazayoux'],date:'1/31/2026',up:['Michael cazayoux'],down:[]},
+    {id:7,cat:'Ski',name:'Beaver Creek',notes:'Best for kids skiing blues and greens.',link:'https://www.beavercreek.com',recommenders:['Landon'],date:'2/1/2026',up:['Landon'],down:[]},
+    {id:8,cat:'Ski',name:'Crested Butte',notes:'Great mountain. Loved as a kid.',link:'https://www.skicb.com',recommenders:['Alex Cohen'],date:'2/1/2026',up:['Alex Cohen'],down:[]},
+    {id:9,cat:'Ski',name:'Santa Fe Ski',notes:'Small mountain with an awesome ski school.',link:'https://www.skisantafe.com',recommenders:['Belinda Bennett'],date:'1/31/2026',up:['Belinda Bennett'],down:[]},
+    {id:10,cat:'Activity',name:'Exotic/Supercar Experience at COTA',notes:'5-star rated. Perfect for teen/young adult sons.',link:'https://www.circuitoftheamericas.com',recommenders:['Wade Burgess'],date:'2/26/2026',up:['Wade Burgess'],down:[]},
+    {id:11,cat:'Service',name:'CEG Embroidery',notes:'Affordable and adorable. Local Austin artist.',link:'https://www.instagram.com/ceg.embroidery',recommenders:['Maybe Teresa'],date:'2/8/2026',up:['Maybe Teresa'],down:[]},
+    {id:12,cat:'Venue',name:'Swimply.com',notes:'Rent private pools and backyards for parties.',link:'https://swimply.com',recommenders:['Zoharo Britton'],date:'2/9/2026',up:['Zoharo Britton'],down:[]},
+    {id:13,cat:'Resource',name:'The Breadwinners Substack',notes:'Essays on ambition and modern parenthood.',link:'https://wearethebreadwinners.substack.com',recommenders:['Alexis Contos'],date:'2/4/2026',up:['Alexis Contos'],down:[]}
+  ],
+  requests: [
+    {id:1,name:'Jon Bischke',title:'Backyard venue for birthday party',detail:'Looking for a house with a backyard in Westlake. Outdoor movie night, 20-25 girls.',date:'2/9/2026'},
+    {id:2,name:'Alexis Contos',title:'Part-time nanny / sitter',detail:'Need someone after school hours in ATX.',date:'2/12/2026'},
+    {id:3,name:'Rina',title:'WordPress / website backend dev',detail:'WordPress, CloudPanel, Elementor, WPRocket, RankMath, Cloudflare.',date:'2/2/2026'}
+  ]
+};
+let activeFilter='All',pendingVote=null;
+function catEmoji(c){return{Photographer:'photo',Ski:'ski',Activity:'car',Service:'tool',Venue:'home',Resource:'book',Other:'pin'}[c]||'pin';}
+function renderFilters(){
+  document.getElementById('filters').innerHTML=['All',...new Set(data.recs.map(r=>r.cat))].map(c=>'<button class="filter-btn '+(activeFilter===c?'active':'')+'" onclick="setFilter(''+c+'')">'+c+'</button>').join('');
+}
+function setFilter(cat){activeFilter=cat;renderFilters();renderCards();}
+function renderCards(){
+  const filtered=activeFilter==='All'?data.recs:data.recs.filter(r=>r.cat===activeFilter);
+  if(!filtered.length){document.getElementById('cards').innerHTML='<div class="empty">No recommendations yet.</div>';return;}
+  document.getElementById('cards').innerHTML=filtered.map(r=>'<div class="card" id="card-'+r.id+'"><span class="card-category cat-'+r.cat+'">'+r.cat+'</span><h3>'+(r.link?'<a href="'+r.link+'" target="_blank">'+r.name+'</a>':r.name)+'</h3><p class="notes">'+r.notes+'</p><p class="recommenders"><strong>Recommended by:</strong> '+r.recommenders.join(', ')+'</p><div class="votes"><button class="vote-btn up" onclick="openVote('+r.id+','up')">+1 '+r.up.length+'</button><button class="vote-btn down" onclick="openVote('+r.id+','down')">-1 '+r.down.length+'</button><span class="vote-names">'+(r.up.length?r.up.join(', '):'')+'</span></div></div>').join('');
+}
+function openVote(recId,type){
+  pendingVote={recId,type};
+  const rec=data.recs.find(r=>r.id===recId);
+  document.getElementById('modal-title').textContent=(type==='up'?'Upvote ':'Downvote ')+rec.name;
+  document.getElementById('modal-name').value='';
+  document.querySelector('.modal-confirm').style.background=type==='up'?'#27ae60':'#e63946';
+  document.getElementById('vote-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('vote-modal').classList.remove('open');pendingVote=null;}
+function confirmVote(){
+  const name=document.getElementById('modal-name').value.trim();
+  if(!name){document.getElementById('modal-name').style.border='2px solid red';return;}
+  const{recId,type}=pendingVote;
+  const rec=data.recs.find(r=>r.id===recId);
+  rec.up=rec.up.filter(n=>n!==name);rec.down=rec.down.filter(n=>n!==name);
+  if(!rec[type].includes(name))rec[type].push(name);
+  closeModal();renderCards();
+}
+function submitRec(){
+  const name=document.getElementById('rec-name').value.trim(),cat=document.getElementById('rec-cat').value,biz=document.getElementById('rec-biz').value.trim(),notes=document.getElementById('rec-notes').value.trim(),link=document.getElementById('rec-link').value.trim();
+  if(!name||!biz){alert('Fill in your name and the business name.');return;}
+  data.recs.unshift({id:Date.now(),cat,name:biz,notes:notes||'New recommendation.',link,recommenders:[name],date:new Date().toLocaleDateString(),up:[name],down:[]});
+  ['rec-name','rec-biz','rec-notes','rec-link'].forEach(id=>document.getElementById(id).value='');
+  alert('Added!');showTab('recs');setFilter(cat);
+}
+function renderRequests(){
+  const list=document.getElementById('request-list');
+  list.innerHTML=data.requests.length?data.requests.map(r=>'<div class="request-item"><h4><span class="badge">Looking for</span>'+r.title+'</h4><p>'+r.detail+'</p><span class="request-meta">'+r.name+' - '+r.date+'</span></div>').join(''):'<div class="empty">No requests yet.</div>';
+}
+function submitRequest(){
+  const name=document.getElementById('req-name').value.trim(),title=document.getElementById('req-title').value.trim(),detail=document.getElementById('req-detail').value.trim();
+  if(!name||!title){alert('Fill in your name and what you need.');return;}
+  data.requests.unshift({id:Date.now(),name,title,detail,date:new Date().toLocaleDateString()});
+  ['req-name','req-title','req-detail'].forEach(id=>document.getElementById(id).value='');
+  renderRequests();alert('Posted!');
+}
+function showTab(tab){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelectorAll('.tab')[tab==='recs'?0:tab==='add'?1:2].classList.add('active');
+}
+renderFilters();renderCards();renderRequests();
+document.getElementById('vote-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+</script>
+</body>
+</html>
