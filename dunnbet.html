@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dunn Bet — Prediction Markets for Friends</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #e0e0e0; min-height: 100vh; }
+
+  /* Header */
+  header { background: #111118; border-bottom: 1px solid #222; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 1.3rem; font-weight: 800; color: #fff; }
+  header h1 span { color: #6c5ce7; }
+  .header-right { display: flex; align-items: center; gap: 14px; }
+  .balance-pill { background: #1a1a2e; border: 1px solid #333; border-radius: 20px; padding: 6px 14px; font-size: 0.85rem; font-weight: 600; color: #00b894; }
+  .user-name { font-size: 0.85rem; color: #888; }
+
+  /* Buttons */
+  .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.15s; }
+  .btn-primary { background: #6c5ce7; color: white; }
+  .btn-primary:hover { background: #5a4bd1; }
+  .btn-secondary { background: #1a1a2e; color: #ccc; border: 1px solid #333; }
+  .btn-secondary:hover { background: #222; }
+  .btn-success { background: #00b894; color: white; }
+  .btn-success:hover { background: #00a383; }
+  .btn-danger { background: #e63946; color: white; }
+  .btn-danger:hover { background: #c0392b; }
+  .btn-sm { padding: 5px 12px; font-size: 0.78rem; }
+  .btn-yes { background: #00b894; color: white; }
+  .btn-yes:hover { background: #00a383; }
+  .btn-no { background: #e63946; color: white; }
+  .btn-no:hover { background: #c0392b; }
+
+  /* Navigation */
+  .nav { display: flex; gap: 4px; padding: 0 24px; background: #111118; border-bottom: 1px solid #222; }
+  .nav-btn { padding: 12px 18px; border: none; background: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #666; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .nav-btn.active { color: #6c5ce7; border-bottom-color: #6c5ce7; }
+  .nav-btn:hover { color: #6c5ce7; }
+
+  /* Layout */
+  .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Cards */
+  .card { background: #15151f; border: 1px solid #222; border-radius: 12px; padding: 18px; margin-bottom: 12px; transition: border-color 0.15s; }
+  .card:hover { border-color: #444; }
+  .card-clickable { cursor: pointer; }
+
+  /* Market Cards */
+  .market-card { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .market-question { font-size: 1rem; font-weight: 600; color: #fff; margin-bottom: 6px; line-height: 1.4; }
+  .market-meta { font-size: 0.78rem; color: #666; display: flex; gap: 12px; flex-wrap: wrap; }
+  .market-prob { text-align: center; min-width: 70px; }
+  .prob-value { font-size: 1.8rem; font-weight: 800; }
+  .prob-label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+  .prob-yes { color: #00b894; }
+  .prob-no { color: #e63946; }
+  .status-badge { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+  .status-open { background: #1a2e1a; color: #00b894; }
+  .status-resolved { background: #1a1a2e; color: #6c5ce7; }
+
+  /* Order Book */
+  .orderbook { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .ob-side { background: #111118; border-radius: 8px; padding: 12px; }
+  .ob-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .ob-title-yes { color: #00b894; }
+  .ob-title-no { color: #e63946; }
+  .ob-row { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 0.85rem; border-radius: 4px; margin-bottom: 2px; }
+  .ob-row-yes { background: rgba(0, 184, 148, 0.08); }
+  .ob-row-no { background: rgba(230, 57, 70, 0.08); }
+  .ob-price { font-weight: 600; }
+  .ob-qty { color: #888; }
+  .ob-empty { color: #444; font-size: 0.8rem; text-align: center; padding: 12px; }
+
+  /* Order Form */
+  .order-form { background: #111118; border-radius: 12px; padding: 20px; margin: 16px 0; }
+  .side-toggle { display: flex; gap: 0; margin-bottom: 16px; border-radius: 8px; overflow: hidden; border: 1px solid #333; }
+  .side-toggle button { flex: 1; padding: 10px; border: none; cursor: pointer; font-weight: 700; font-size: 0.9rem; transition: all 0.15s; background: #1a1a2e; color: #666; }
+  .side-toggle button.active-yes { background: #00b894; color: white; }
+  .side-toggle button.active-no { background: #e63946; color: white; }
+  .form-row { margin-bottom: 14px; }
+  .form-row label { display: block; font-size: 0.8rem; font-weight: 600; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid #333; border-radius: 8px;
+    background: #0a0a0f; color: #e0e0e0; font-size: 0.9rem; font-family: inherit; outline: none;
+  }
+  .form-row input:focus, .form-row textarea:focus { border-color: #6c5ce7; }
+  .form-row textarea { resize: vertical; min-height: 70px; }
+  .price-slider { width: 100%; margin-top: 6px; accent-color: #6c5ce7; }
+  .cost-display { background: #1a1a2e; border-radius: 8px; padding: 12px; margin-top: 12px; display: flex; justify-content: space-between; font-size: 0.9rem; }
+  .cost-label { color: #888; }
+  .cost-value { font-weight: 700; color: #fff; }
+
+  /* Trades List */
+  .trade-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #1a1a2e; font-size: 0.82rem; }
+  .trade-row:last-child { border-bottom: none; }
+
+  /* Groups */
+  .group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .group-card { text-align: center; }
+  .group-name { font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .group-stat { font-size: 0.8rem; color: #666; }
+  .invite-code { font-family: monospace; background: #1a1a2e; padding: 8px 14px; border-radius: 6px; font-size: 0.9rem; color: #6c5ce7; letter-spacing: 0.15em; display: inline-block; margin-top: 8px; }
+
+  /* Portfolio */
+  .positions-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .positions-table th { text-align: left; padding: 8px 12px; color: #666; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid #222; }
+  .positions-table td { padding: 8px 12px; border-bottom: 1px solid #1a1a2e; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #15151f; border: 1px solid #333; border-radius: 14px; padding: 28px; max-width: 420px; width: 90%; }
+  .modal h2 { font-size: 1.1rem; margin-bottom: 16px; color: #fff; }
+
+  /* Auth */
+  .auth-container { max-width: 380px; margin: 80px auto; text-align: center; }
+  .auth-container h2 { font-size: 1.5rem; margin-bottom: 8px; color: #fff; }
+  .auth-container p { color: #666; margin-bottom: 24px; font-size: 0.9rem; }
+  .auth-container .form-row { text-align: left; }
+
+  /* Empty states */
+  .empty { text-align: center; color: #444; padding: 48px 24px; font-size: 0.95rem; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .container { padding: 16px; }
+    .orderbook { grid-template-columns: 1fr; }
+    .market-card { flex-direction: column; }
+    .market-prob { text-align: left; }
+    .prob-value { font-size: 1.3rem; }
+  }
+
+  /* Section headers */
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .section-header h2 { font-size: 1.2rem; font-weight: 700; color: #fff; }
+
+  /* Back button */
+  .back-btn { background: none; border: none; color: #6c5ce7; cursor: pointer; font-size: 0.85rem; font-weight: 600; padding: 0; margin-bottom: 16px; display: inline-flex; align-items: center; gap: 4px; }
+  .back-btn:hover { color: #5a4bd1; }
+
+  /* Positions in market detail */
+  .your-position { background: #1a1a2e; border-radius: 8px; padding: 14px; margin: 12px 0; }
+  .your-position h4 { font-size: 0.8rem; color: #888; text-transform: uppercase; margin-bottom: 8px; }
+  .pos-row { display: flex; justify-content: space-between; font-size: 0.9rem; padding: 3px 0; }
+</style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="auth-screen" class="view active">
+  <div class="auth-container">
+    <h1 style="font-size:2rem;margin-bottom:4px;">Dunn <span style="color:#6c5ce7;">Bet</span></h1>
+    <p>Prediction markets for your friend group</p>
+    <div class="card" style="text-align:left;">
+      <div id="auth-form">
+        <div class="form-row">
+          <label>Email</label>
+          <input type="email" id="auth-email" placeholder="you@email.com">
+        </div>
+        <div style="margin-top:14px;">
+          <button class="btn btn-primary" style="width:100%;" onclick="handleLogin()">Sign in with magic link</button>
+        </div>
+        <p id="auth-msg" style="margin-top:12px;font-size:0.82rem;color:#888;text-align:center;"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main App (hidden until auth) -->
+<div id="app" class="view">
+  <header>
+    <h1>Dunn <span>Bet</span></h1>
+    <div class="header-right">
+      <span class="user-name" id="user-display"></span>
+      <button class="btn btn-secondary btn-sm" onclick="handleLogout()">Log out</button>
+    </div>
+  </header>
+  <div class="nav" id="main-nav">
+    <button class="nav-btn active" onclick="showView('groups')">Groups</button>
+    <button class="nav-btn" onclick="showView('portfolio')">Portfolio</button>
+  </div>
+
+  <!-- Groups View -->
+  <div id="view-groups" class="view active">
+    <div class="container">
+      <div class="section-header">
+        <h2>Your Groups</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="openModal('join-modal')">Join Group</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('create-group-modal')">New Group</button>
+        </div>
+      </div>
+      <div class="group-grid" id="groups-list"></div>
+    </div>
+  </div>
+
+  <!-- Group Detail / Markets View -->
+  <div id="view-group-detail" class="view">
+    <div class="container">
+      <button class="back-btn" onclick="showView('groups')">&larr; Back to groups</button>
+      <div class="section-header">
+        <div>
+          <h2 id="group-detail-name"></h2>
+          <div style="display:flex;gap:16px;align-items:center;margin-top:6px;">
+            <span class="balance-pill" id="group-balance">$0.00</span>
+            <span class="invite-code" id="group-invite-code"></span>
+            <button class="btn btn-secondary btn-sm" onclick="copyInvite()">Copy link</button>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openCreateMarket()">New Bet</button>
+      </div>
+      <div id="group-markets-list" style="margin-top:20px;"></div>
+    </div>
+  </div>
+
+  <!-- Market Detail View -->
+  <div id="view-market-detail" class="view">
+    <div class="container">
+      <button class="back-btn" onclick="backToGroup()">&larr; Back to bets</button>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+          <div style="flex:1;">
+            <h2 id="market-question" style="font-size:1.15rem;color:#fff;margin-bottom:6px;"></h2>
+            <div id="market-desc" style="font-size:0.85rem;color:#666;margin-bottom:8px;"></div>
+            <div class="market-meta">
+              <span id="market-status-badge"></span>
+              <span id="market-resolution-date"></span>
+              <span id="market-volume"></span>
+              <span id="market-creator-name"></span>
+            </div>
+          </div>
+          <div class="market-prob" id="market-prob-display"></div>
+        </div>
+      </div>
+
+      <div id="market-active-content">
+        <!-- Order Book -->
+        <h3 style="font-size:0.9rem;color:#888;margin-bottom:8px;">Order Book</h3>
+        <div class="orderbook">
+          <div class="ob-side">
+            <div class="ob-title ob-title-yes">YES Bids</div>
+            <div id="ob-yes"></div>
+          </div>
+          <div class="ob-side">
+            <div class="ob-title ob-title-no">NO Bids</div>
+            <div id="ob-no"></div>
+          </div>
+        </div>
+
+        <!-- Place Order -->
+        <div class="order-form" id="order-form">
+          <h3 style="font-size:0.9rem;color:#888;margin-bottom:12px;">Place Order</h3>
+          <div class="side-toggle">
+            <button id="side-yes-btn" class="active-yes" onclick="setSide('yes')">YES</button>
+            <button id="side-no-btn" onclick="setSide('no')">NO</button>
+          </div>
+          <div class="form-row">
+            <label>Price (probability)</label>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <input type="range" class="price-slider" id="order-price" min="1" max="99" value="50" oninput="updateOrderCost()">
+              <span id="order-price-display" style="font-weight:700;font-size:1.1rem;min-width:44px;text-align:right;">50&cent;</span>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Shares</label>
+            <input type="number" id="order-qty" min="1" value="10" oninput="updateOrderCost()">
+          </div>
+          <div class="cost-display">
+            <span class="cost-label">Total Cost</span>
+            <span class="cost-value" id="order-total">$5.00</span>
+          </div>
+          <div class="cost-display" style="margin-top:6px;">
+            <span class="cost-label">Potential Payout</span>
+            <span class="cost-value" id="order-payout" style="color:#00b894;">$9.80</span>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:14px;" id="place-order-btn" onclick="placeOrder()">Place Order</button>
+        </div>
+
+        <!-- Your Position -->
+        <div class="your-position" id="your-position" style="display:none;">
+          <h4>Your Position</h4>
+          <div id="position-details"></div>
+        </div>
+
+        <!-- Your Open Orders -->
+        <div id="your-orders-section" style="display:none;margin-top:16px;">
+          <h4 style="font-size:0.8rem;color:#888;text-transform:uppercase;margin-bottom:8px;">Your Open Orders</h4>
+          <div id="your-orders"></div>
+        </div>
+
+        <!-- Resolve button (creator only) -->
+        <div id="resolve-section" style="display:none;margin-top:20px;">
+          <div class="card" style="border-color:#6c5ce7;">
+            <h4 style="color:#fff;margin-bottom:10px;">Resolve this market</h4>
+            <p style="font-size:0.82rem;color:#666;margin-bottom:12px;">As the creator, you can resolve this bet. Winners get $0.98/share (2% platform fee).</p>
+            <div style="display:flex;gap:10px;">
+              <button class="btn btn-yes" onclick="resolveMarket('yes')">Resolve YES</button>
+              <button class="btn btn-no" onclick="resolveMarket('no')">Resolve NO</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resolved display -->
+      <div id="market-resolved-content" style="display:none;">
+        <div class="card" style="text-align:center;padding:32px;">
+          <div id="resolved-outcome" style="font-size:1.5rem;font-weight:800;margin-bottom:8px;"></div>
+          <p style="color:#666;font-size:0.9rem;">This market has been resolved.</p>
+        </div>
+      </div>
+
+      <!-- Recent Trades -->
+      <div style="margin-top:20px;">
+        <h3 style="font-size:0.9rem;color:#888;margin-bottom:8px;">Recent Trades</h3>
+        <div class="card" id="recent-trades"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Portfolio View -->
+  <div id="view-portfolio" class="view">
+    <div class="container">
+      <h2 style="margin-bottom:20px;color:#fff;">Portfolio</h2>
+      <div id="portfolio-positions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Group Modal -->
+<div class="modal-overlay" id="create-group-modal">
+  <div class="modal">
+    <h2>Create a Group</h2>
+    <div class="form-row">
+      <label>Group Name</label>
+      <input type="text" id="new-group-name" placeholder="e.g. Poker Night Crew">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-secondary" onclick="closeModal('create-group-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createGroup()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Join Group Modal -->
+<div class="modal-overlay" id="join-modal">
+  <div class="modal">
+    <h2>Join a Group</h2>
+    <div class="form-row">
+      <label>Invite Code</label>
+      <input type="text" id="join-code" placeholder="e.g. a1b2c3d4e5f6">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-secondary" onclick="closeModal('join-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="joinGroup()">Join</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Market Modal -->
+<div class="modal-overlay" id="create-market-modal">
+  <div class="modal">
+    <h2>Create a Bet</h2>
+    <div class="form-row">
+      <label>Question</label>
+      <input type="text" id="market-q" placeholder="e.g. Chris will have 3 beers tonight">
+    </div>
+    <div class="form-row">
+      <label>Details (optional)</label>
+      <textarea id="market-d" placeholder="Any rules or context..."></textarea>
+    </div>
+    <div class="form-row">
+      <label>Starting Probability</label>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <input type="range" class="price-slider" id="market-prob-input" min="1" max="99" value="50" oninput="document.getElementById('market-prob-val').textContent=this.value+'%'">
+        <span id="market-prob-val" style="font-weight:700;min-width:40px;">50%</span>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Resolution Date (optional)</label>
+      <input type="date" id="market-date">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-secondary" onclick="closeModal('create-market-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createMarket()">Create Bet</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// CONFIG — Replace with your Supabase credentials
+// ============================================
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================
+// State
+// ============================================
+let currentUser = null;
+let currentGroupId = null;
+let currentMarketId = null;
+let orderSide = 'yes';
+
+// ============================================
+// Auth
+// ============================================
+async function handleLogin() {
+  const email = document.getElementById('auth-email').value.trim();
+  if (!email) return;
+  const msg = document.getElementById('auth-msg');
+  msg.textContent = 'Sending magic link...';
+  const { error } = await sb.auth.signInWithOtp({ email });
+  if (error) {
+    msg.textContent = 'Error: ' + error.message;
+    msg.style.color = '#e63946';
+  } else {
+    msg.textContent = 'Check your email for the login link!';
+    msg.style.color = '#00b894';
+  }
+}
+
+async function handleLogout() {
+  await sb.auth.signOut();
+  currentUser = null;
+  showScreen('auth');
+}
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (session?.user) {
+    currentUser = session.user;
+    document.getElementById('user-display').textContent = session.user.email;
+    showScreen('app');
+    loadGroups();
+  } else {
+    currentUser = null;
+    showScreen('auth');
+  }
+});
+
+// Check initial session
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    currentUser = session.user;
+    document.getElementById('user-display').textContent = session.user.email;
+    showScreen('app');
+    loadGroups();
+  }
+})();
+
+function showScreen(screen) {
+  document.getElementById('auth-screen').classList.toggle('active', screen === 'auth');
+  document.getElementById('app').classList.toggle('active', screen === 'app');
+}
+
+// ============================================
+// Navigation
+// ============================================
+function showView(view) {
+  ['groups', 'group-detail', 'market-detail', 'portfolio'].forEach(v => {
+    document.getElementById('view-' + v).classList.remove('active');
+  });
+  document.getElementById('view-' + view).classList.add('active');
+  // Update nav
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (view === 'groups' || view === 'group-detail' || view === 'market-detail') {
+    document.querySelectorAll('.nav-btn')[0].classList.add('active');
+  } else if (view === 'portfolio') {
+    document.querySelectorAll('.nav-btn')[1].classList.add('active');
+    loadPortfolio();
+  }
+}
+
+function backToGroup() {
+  showView('group-detail');
+  loadGroupDetail(currentGroupId);
+}
+
+// ============================================
+// Modals
+// ============================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ============================================
+// Groups
+// ============================================
+async function loadGroups() {
+  const { data: memberships, error } = await sb.from('group_members')
+    .select('group_id, balance, groups(id, name, invite_code, created_at)')
+    .eq('user_id', currentUser.id);
+
+  const container = document.getElementById('groups-list');
+  if (error || !memberships?.length) {
+    container.innerHTML = '<div class="empty">No groups yet. Create one or join with an invite code!</div>';
+    return;
+  }
+
+  container.innerHTML = memberships.map(m => {
+    const g = m.groups;
+    return `<div class="card card-clickable group-card" onclick="openGroup('${g.id}')">
+      <div class="group-name">${esc(g.name)}</div>
+      <div class="group-stat">Balance: $${(m.balance / 100).toFixed(2)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function createGroup() {
+  const name = document.getElementById('new-group-name').value.trim();
+  if (!name) return;
+  const { data, error } = await sb.rpc('create_group', { p_name: name, p_user_id: currentUser.id });
+  if (error) { alert('Error: ' + error.message); return; }
+  closeModal('create-group-modal');
+  document.getElementById('new-group-name').value = '';
+  loadGroups();
+}
+
+async function joinGroup() {
+  let code = document.getElementById('join-code').value.trim();
+  // Handle full URL with invite code
+  if (code.includes('?invite=')) code = code.split('?invite=')[1];
+  if (!code) return;
+  const { data, error } = await sb.rpc('join_group', { p_invite_code: code, p_user_id: currentUser.id });
+  if (error) { alert('Error: ' + error.message); return; }
+  closeModal('join-modal');
+  document.getElementById('join-code').value = '';
+  loadGroups();
+}
+
+async function openGroup(groupId) {
+  currentGroupId = groupId;
+  showView('group-detail');
+  await loadGroupDetail(groupId);
+}
+
+async function loadGroupDetail(groupId) {
+  // Load group info
+  const { data: group } = await sb.from('groups').select('*').eq('id', groupId).single();
+  if (!group) return;
+
+  document.getElementById('group-detail-name').textContent = group.name;
+  document.getElementById('group-invite-code').textContent = group.invite_code;
+
+  // Load user's balance in this group
+  const { data: membership } = await sb.from('group_members')
+    .select('balance')
+    .eq('group_id', groupId).eq('user_id', currentUser.id).single();
+  document.getElementById('group-balance').textContent = '$' + ((membership?.balance || 0) / 100).toFixed(2);
+
+  // Load markets
+  const { data: markets } = await sb.from('markets')
+    .select('*')
+    .eq('group_id', groupId)
+    .order('created_at', { ascending: false });
+
+  const container = document.getElementById('group-markets-list');
+  if (!markets?.length) {
+    container.innerHTML = '<div class="empty">No bets yet. Create the first one!</div>';
+    return;
+  }
+
+  // For each market, get the last trade price
+  const marketHtml = await Promise.all(markets.map(async m => {
+    const { data: lastTrade } = await sb.from('trades')
+      .select('price')
+      .eq('market_id', m.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const prob = lastTrade?.length ? lastTrade[0].price : m.initial_probability;
+    const statusClass = m.status === 'open' ? 'status-open' : 'status-resolved';
+    const statusText = m.status === 'resolved' ? `Resolved: ${m.resolved_outcome.toUpperCase()}` : 'Open';
+
+    return `<div class="card card-clickable" onclick="openMarket('${m.id}')">
+      <div class="market-card">
+        <div>
+          <div class="market-question">${esc(m.question)}</div>
+          <div class="market-meta">
+            <span class="status-badge ${statusClass}">${statusText}</span>
+            ${m.resolution_date ? `<span>Resolves: ${new Date(m.resolution_date).toLocaleDateString()}</span>` : ''}
+          </div>
+        </div>
+        <div class="market-prob">
+          <div class="prob-value ${prob >= 50 ? 'prob-yes' : 'prob-no'}">${prob}%</div>
+          <div class="prob-label">chance</div>
+        </div>
+      </div>
+    </div>`;
+  }));
+
+  container.innerHTML = marketHtml.join('');
+}
+
+function copyInvite() {
+  const code = document.getElementById('group-invite-code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.querySelector('[onclick="copyInvite()"]');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy link', 1500);
+  });
+}
+
+function openCreateMarket() {
+  document.getElementById('market-q').value = '';
+  document.getElementById('market-d').value = '';
+  document.getElementById('market-prob-input').value = 50;
+  document.getElementById('market-prob-val').textContent = '50%';
+  document.getElementById('market-date').value = '';
+  openModal('create-market-modal');
+}
+
+async function createMarket() {
+  const question = document.getElementById('market-q').value.trim();
+  if (!question) return;
+  const description = document.getElementById('market-d').value.trim();
+  const prob = parseInt(document.getElementById('market-prob-input').value);
+  const dateVal = document.getElementById('market-date').value;
+
+  const { error } = await sb.from('markets').insert({
+    group_id: currentGroupId,
+    creator_id: currentUser.id,
+    question,
+    description: description || null,
+    initial_probability: prob,
+    resolution_date: dateVal || null
+  });
+
+  if (error) { alert('Error: ' + error.message); return; }
+  closeModal('create-market-modal');
+  loadGroupDetail(currentGroupId);
+}
+
+// ============================================
+// Market Detail
+// ============================================
+async function openMarket(marketId) {
+  currentMarketId = marketId;
+  showView('market-detail');
+  await loadMarketDetail(marketId);
+}
+
+async function loadMarketDetail(marketId) {
+  // Load market
+  const { data: market } = await sb.from('markets').select('*').eq('id', marketId).single();
+  if (!market) return;
+
+  document.getElementById('market-question').textContent = market.question;
+  document.getElementById('market-desc').textContent = market.description || '';
+
+  const statusClass = market.status === 'open' ? 'status-open' : 'status-resolved';
+  const statusText = market.status === 'resolved' ? `Resolved: ${market.resolved_outcome.toUpperCase()}` : 'Open';
+  document.getElementById('market-status-badge').innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
+  document.getElementById('market-resolution-date').textContent = market.resolution_date
+    ? 'Resolves: ' + new Date(market.resolution_date).toLocaleDateString() : '';
+
+  // Get last trade price or initial prob
+  const { data: lastTrade } = await sb.from('trades')
+    .select('price').eq('market_id', marketId)
+    .order('created_at', { ascending: false }).limit(1);
+  const prob = lastTrade?.length ? lastTrade[0].price : market.initial_probability;
+
+  document.getElementById('market-prob-display').innerHTML = `
+    <div class="prob-value ${prob >= 50 ? 'prob-yes' : 'prob-no'}">${prob}%</div>
+    <div class="prob-label">chance</div>`;
+
+  // Volume
+  const { data: trades } = await sb.from('trades')
+    .select('price, quantity').eq('market_id', marketId);
+  const volume = (trades || []).reduce((s, t) => s + t.quantity, 0);
+  document.getElementById('market-volume').textContent = volume + ' shares traded';
+
+  // Show/hide based on status
+  const isOpen = market.status === 'open';
+  document.getElementById('market-active-content').style.display = isOpen ? 'block' : 'none';
+  document.getElementById('market-resolved-content').style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    const outcomeColor = market.resolved_outcome === 'yes' ? '#00b894' : '#e63946';
+    document.getElementById('resolved-outcome').innerHTML =
+      `<span style="color:${outcomeColor}">${market.resolved_outcome.toUpperCase()}</span>`;
+  }
+
+  // Resolve button (creator only)
+  document.getElementById('resolve-section').style.display =
+    (isOpen && market.creator_id === currentUser.id) ? 'block' : 'none';
+
+  if (isOpen) {
+    loadOrderBook(marketId);
+    loadYourPosition(marketId);
+    loadYourOrders(marketId);
+    // Set price slider to current probability
+    document.getElementById('order-price').value = prob;
+    setSide('yes');
+    updateOrderCost();
+  }
+
+  // Recent trades
+  loadRecentTrades(marketId);
+
+  // Subscribe to real-time updates
+  setupRealtimeSubs(marketId);
+}
+
+async function loadOrderBook(marketId) {
+  const { data: orders } = await sb.from('orders')
+    .select('side, price, quantity, filled_quantity')
+    .eq('market_id', marketId)
+    .in('status', ['open', 'partial']);
+
+  // Aggregate by price level
+  const yesBids = {}, noBids = {};
+  (orders || []).forEach(o => {
+    const avail = o.quantity - o.filled_quantity;
+    if (avail <= 0) return;
+    const bucket = o.side === 'yes' ? yesBids : noBids;
+    bucket[o.price] = (bucket[o.price] || 0) + avail;
+  });
+
+  // Render YES side (sorted desc)
+  const yesEl = document.getElementById('ob-yes');
+  const yesPrices = Object.keys(yesBids).map(Number).sort((a, b) => b - a);
+  yesEl.innerHTML = yesPrices.length
+    ? yesPrices.map(p => `<div class="ob-row ob-row-yes"><span class="ob-price">${p}&cent;</span><span class="ob-qty">${yesBids[p]} shares</span></div>`).join('')
+    : '<div class="ob-empty">No YES orders</div>';
+
+  // Render NO side (sorted desc)
+  const noEl = document.getElementById('ob-no');
+  const noPrices = Object.keys(noBids).map(Number).sort((a, b) => b - a);
+  noEl.innerHTML = noPrices.length
+    ? noPrices.map(p => `<div class="ob-row ob-row-no"><span class="ob-price">${p}&cent;</span><span class="ob-qty">${noBids[p]} shares</span></div>`).join('')
+    : '<div class="ob-empty">No NO orders</div>';
+}
+
+async function loadYourPosition(marketId) {
+  const { data: positions } = await sb.from('positions')
+    .select('side, quantity')
+    .eq('market_id', marketId)
+    .eq('user_id', currentUser.id);
+
+  const section = document.getElementById('your-position');
+  const details = document.getElementById('position-details');
+  if (!positions?.length || positions.every(p => p.quantity === 0)) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  details.innerHTML = positions.filter(p => p.quantity > 0).map(p =>
+    `<div class="pos-row"><span>${p.side.toUpperCase()}</span><span>${p.quantity} shares</span></div>`
+  ).join('');
+}
+
+async function loadYourOrders(marketId) {
+  const { data: orders } = await sb.from('orders')
+    .select('*')
+    .eq('market_id', marketId)
+    .eq('user_id', currentUser.id)
+    .in('status', ['open', 'partial'])
+    .order('created_at', { ascending: false });
+
+  const section = document.getElementById('your-orders-section');
+  const container = document.getElementById('your-orders');
+  if (!orders?.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  container.innerHTML = orders.map(o => {
+    const remaining = o.quantity - o.filled_quantity;
+    return `<div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <span style="font-weight:600;color:${o.side === 'yes' ? '#00b894' : '#e63946'}">${o.side.toUpperCase()}</span>
+        <span style="color:#888;margin-left:8px;">${remaining} @ ${o.price}&cent;</span>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="cancelOrder('${o.id}')">Cancel</button>
+    </div>`;
+  }).join('');
+}
+
+async function loadRecentTrades(marketId) {
+  const { data: trades } = await sb.from('trades')
+    .select('price, quantity, created_at, yes_user_id, no_user_id')
+    .eq('market_id', marketId)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  const container = document.getElementById('recent-trades');
+  if (!trades?.length) {
+    container.innerHTML = '<div class="ob-empty">No trades yet</div>';
+    return;
+  }
+  container.innerHTML = trades.map(t =>
+    `<div class="trade-row">
+      <span>${t.quantity} shares @ ${t.price}&cent;</span>
+      <span style="color:#666;">${new Date(t.created_at).toLocaleString()}</span>
+    </div>`
+  ).join('');
+}
+
+// ============================================
+// Order Placement
+// ============================================
+function setSide(side) {
+  orderSide = side;
+  document.getElementById('side-yes-btn').className = side === 'yes' ? 'active-yes' : '';
+  document.getElementById('side-no-btn').className = side === 'no' ? 'active-no' : '';
+  updateOrderCost();
+}
+
+function updateOrderCost() {
+  const price = parseInt(document.getElementById('order-price').value);
+  const qty = parseInt(document.getElementById('order-qty').value) || 0;
+  document.getElementById('order-price-display').innerHTML = price + '&cent;';
+  const total = (price * qty / 100).toFixed(2);
+  const payout = (qty * 0.98).toFixed(2); // $0.98 per winning share after 2% fee
+  document.getElementById('order-total').textContent = '$' + total;
+  document.getElementById('order-payout').textContent = '$' + payout;
+}
+
+async function placeOrder() {
+  const price = parseInt(document.getElementById('order-price').value);
+  const qty = parseInt(document.getElementById('order-qty').value);
+  if (!qty || qty < 1) { alert('Enter a valid quantity.'); return; }
+
+  const btn = document.getElementById('place-order-btn');
+  btn.disabled = true;
+  btn.textContent = 'Placing...';
+
+  const { data, error } = await sb.rpc('place_order', {
+    p_market_id: currentMarketId,
+    p_user_id: currentUser.id,
+    p_side: orderSide,
+    p_price: price,
+    p_quantity: qty
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Place Order';
+
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+
+  // Reload everything
+  loadMarketDetail(currentMarketId);
+  // Also update group balance display
+  const market = (await sb.from('markets').select('group_id').eq('id', currentMarketId).single()).data;
+  if (market) {
+    const { data: membership } = await sb.from('group_members')
+      .select('balance').eq('group_id', market.group_id).eq('user_id', currentUser.id).single();
+    document.getElementById('group-balance').textContent = '$' + ((membership?.balance || 0) / 100).toFixed(2);
+  }
+}
+
+async function cancelOrder(orderId) {
+  const { error } = await sb.rpc('cancel_order', {
+    p_order_id: orderId,
+    p_user_id: currentUser.id
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  loadMarketDetail(currentMarketId);
+}
+
+async function resolveMarket(outcome) {
+  if (!confirm(`Resolve this market as ${outcome.toUpperCase()}? This cannot be undone.`)) return;
+
+  const { error } = await sb.rpc('resolve_market', {
+    p_market_id: currentMarketId,
+    p_user_id: currentUser.id,
+    p_outcome: outcome
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  loadMarketDetail(currentMarketId);
+}
+
+// ============================================
+// Real-time Subscriptions
+// ============================================
+let realtimeChannel = null;
+
+function setupRealtimeSubs(marketId) {
+  // Clean up previous subscription
+  if (realtimeChannel) {
+    sb.removeChannel(realtimeChannel);
+  }
+
+  realtimeChannel = sb.channel('market-' + marketId)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'orders',
+      filter: 'market_id=eq.' + marketId
+    }, () => {
+      loadOrderBook(marketId);
+      loadYourOrders(marketId);
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'trades',
+      filter: 'market_id=eq.' + marketId
+    }, () => {
+      loadRecentTrades(marketId);
+      loadYourPosition(marketId);
+      loadOrderBook(marketId);
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'markets',
+      filter: 'id=eq.' + marketId
+    }, () => {
+      loadMarketDetail(marketId);
+    })
+    .subscribe();
+}
+
+// ============================================
+// Portfolio
+// ============================================
+async function loadPortfolio() {
+  // Get all user positions across all groups
+  const { data: positions } = await sb.from('positions')
+    .select('side, quantity, market_id, markets(question, status, resolved_outcome, group_id)')
+    .eq('user_id', currentUser.id)
+    .gt('quantity', 0);
+
+  const container = document.getElementById('portfolio-positions');
+  if (!positions?.length) {
+    container.innerHTML = '<div class="empty">No positions yet. Join a group and start betting!</div>';
+    return;
+  }
+
+  // Group balances
+  const { data: memberships } = await sb.from('group_members')
+    .select('balance, groups(name)')
+    .eq('user_id', currentUser.id);
+
+  let html = '<div style="margin-bottom:24px;">';
+  html += '<h3 style="font-size:0.9rem;color:#888;margin-bottom:10px;">Group Balances</h3>';
+  (memberships || []).forEach(m => {
+    html += `<div class="card" style="display:flex;justify-content:space-between;padding:12px 16px;">
+      <span style="color:#fff;">${esc(m.groups.name)}</span>
+      <span class="balance-pill">$${(m.balance / 100).toFixed(2)}</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  html += '<h3 style="font-size:0.9rem;color:#888;margin-bottom:10px;">Active Positions</h3>';
+  html += '<table class="positions-table"><thead><tr><th>Market</th><th>Side</th><th>Shares</th><th>Status</th></tr></thead><tbody>';
+  positions.forEach(p => {
+    const m = p.markets;
+    const sideColor = p.side === 'yes' ? '#00b894' : '#e63946';
+    const status = m.status === 'resolved'
+      ? (p.side === m.resolved_outcome ? '<span style="color:#00b894">Won</span>' : '<span style="color:#e63946">Lost</span>')
+      : '<span style="color:#888">Open</span>';
+    html += `<tr>
+      <td style="color:#fff;cursor:pointer;" onclick="openMarket('${p.market_id}')">${esc(m.question)}</td>
+      <td style="color:${sideColor};font-weight:600;">${p.side.toUpperCase()}</td>
+      <td>${p.quantity}</td>
+      <td>${status}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+
+  container.innerHTML = html;
+}
+
+// ============================================
+// Helpers
+// ============================================
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>
