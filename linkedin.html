@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkedIn → Landing Page</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a1a; color: #fff; min-height: 100vh; }
+
+  /* ── Pitch / Input Screen ── */
+  .pitch {
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 24px; text-align: center;
+    background: radial-gradient(ellipse at 50% 0%, #1a1a3e 0%, #0a0a1a 70%);
+  }
+  .pitch h1 { font-size: 3rem; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 12px; line-height: 1.1; }
+  .pitch h1 span { background: linear-gradient(135deg, #e63946, #ff6b81, #ffd93d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .pitch p { font-size: 1.15rem; color: rgba(255,255,255,0.55); max-width: 520px; margin-bottom: 36px; line-height: 1.6; }
+  .url-box { display: flex; gap: 0; max-width: 580px; width: 100%; }
+  .url-box input {
+    flex: 1; padding: 16px 20px; font-size: 1rem; border: 2px solid rgba(255,255,255,0.15);
+    border-right: none; border-radius: 12px 0 0 12px; background: rgba(255,255,255,0.06);
+    color: white; outline: none; font-family: inherit; transition: border 0.3s;
+  }
+  .url-box input::placeholder { color: rgba(255,255,255,0.3); }
+  .url-box input:focus { border-color: #e63946; }
+  .url-box button {
+    padding: 16px 32px; font-size: 1rem; font-weight: 700; border: none; border-radius: 0 12px 12px 0;
+    background: linear-gradient(135deg, #e63946, #ff6b81); color: white; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s; white-space: nowrap;
+  }
+  .url-box button:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(230,57,70,0.4); }
+  .examples { margin-top: 20px; font-size: 0.85rem; color: rgba(255,255,255,0.35); }
+  .examples a { color: rgba(255,255,255,0.5); cursor: pointer; text-decoration: underline; transition: color 0.2s; }
+  .examples a:hover { color: #e63946; }
+
+  /* ── Loading ── */
+  .loading { display: none; flex-direction: column; align-items: center; gap: 16px; margin-top: 30px; }
+  .loading.show { display: flex; }
+  .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #e63946; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading p { font-size: 0.9rem; color: rgba(255,255,255,0.5); }
+
+  /* ── Result Screen ── */
+  .result { display: none; }
+  .result.show { display: block; }
+  .result-bar {
+    background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 12px 24px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .result-bar .profile-name { font-weight: 700; font-size: 0.95rem; margin-right: auto; }
+  .result-bar .linkedin-link { font-size: 0.8rem; color: rgba(255,255,255,0.4); text-decoration: none; }
+  .result-bar .linkedin-link:hover { color: #e63946; }
+  .bar-btn {
+    padding: 7px 16px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.15);
+    background: transparent; color: white; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .bar-btn:hover { background: rgba(255,255,255,0.08); }
+  .bar-btn.primary { background: #e63946; border-color: #e63946; }
+  .bar-btn.primary:hover { background: #c0392b; }
+  .template-tabs { display: flex; gap: 4px; }
+  .template-tabs button {
+    padding: 6px 14px; border-radius: 6px; border: none; background: transparent;
+    color: rgba(255,255,255,0.4); font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .template-tabs button.active { background: rgba(255,255,255,0.1); color: white; }
+  .template-tabs button:hover { color: white; }
+  #preview-frame { width: 100%; border: none; min-height: calc(100vh - 52px); background: white; }
+
+  @media (max-width: 600px) {
+    .pitch h1 { font-size: 2rem; }
+    .pitch p { font-size: 1rem; }
+    .url-box { flex-direction: column; }
+    .url-box input { border-right: 2px solid rgba(255,255,255,0.15); border-radius: 12px 12px 0 0; }
+    .url-box button { border-radius: 0 0 12px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ PITCH SCREEN ═══ -->
+<div class="pitch" id="pitch-screen">
+  <h1>LinkedIn URL in.<br><span>Landing page out.</span></h1>
+  <p>Paste any LinkedIn profile URL and instantly get a beautiful, ready-to-share personal landing page. No signup. No fuss.</p>
+  <div class="url-box">
+    <input type="text" id="linkedin-url" placeholder="https://linkedin.com/in/someone" autofocus>
+    <button onclick="go()">Generate</button>
+  </div>
+  <div class="examples">
+    Try it: <a onclick="tryExample('noah-kagan')">noah-kagan</a> · <a onclick="tryExample('alexchen')">alexchen</a> · <a onclick="tryExample('sarahj')">sarahj</a>
+  </div>
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Fetching profile & generating page...</p>
+  </div>
+</div>
+
+<!-- ═══ RESULT SCREEN ═══ -->
+<div class="result" id="result-screen">
+  <div class="result-bar">
+    <span class="profile-name" id="result-name"></span>
+    <a class="linkedin-link" id="result-link" href="#" target="_blank">View on LinkedIn</a>
+    <div class="template-tabs">
+      <button class="active" onclick="switchTemplate('minimal', this)">Minimal</button>
+      <button onclick="switchTemplate('split', this)">Split</button>
+      <button onclick="switchTemplate('card', this)">Card</button>
+    </div>
+    <button class="bar-btn" onclick="startOver()">New URL</button>
+  </div>
+  <iframe id="preview-frame" title="Landing page preview"></iframe>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// DEMO PROFILES — keyed by LinkedIn slug
+// ═══════════════════════════════════════════
+const profiles = {
+  'noah-kagan': {
+    fullName: "Noah Kagan",
+    headline: "CEO at AppSumo | YouTuber | Author of Million Dollar Weekend",
+    photoUrl: "https://media.licdn.com/dms/image/v2/D5603AQHahFMDiJiDIQ/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1718997369694?e=1748476800&v=beta&t=placeholder",
+    location: "Austin, TX",
+    bio: "I'm the CEO of AppSumo — the #1 platform for entrepreneur tools, serving 1M+ customers. Before that, I was employee #30 at Facebook and #4 at Mint.com.\n\nI've spent the last 15 years figuring out what actually works to grow a business. Not theory. Real stuff. I wrote \"Million Dollar Weekend\" to show anyone how to start a business in 48 hours with $0.\n\nI also run a YouTube channel with 1M+ subscribers where I break down business strategies, interview founders, and test marketing tactics in the real world.",
+    experience: [
+      { jobTitle: "CEO & Chief Sumo", company: "AppSumo", duration: "2010 – Present", description: "Built AppSumo from $0 to $80M+ in revenue. Marketplace for entrepreneurial tools with 1M+ customers and 100+ team members worldwide." },
+      { jobTitle: "Author & Content Creator", company: "NoahKagan.com / YouTube", duration: "2015 – Present", description: "1M+ YouTube subscribers. Author of \"Million Dollar Weekend\" (WSJ Bestseller). Weekly podcast \"Noah Kagan Presents\" with millions of downloads." },
+      { jobTitle: "#4 Employee", company: "Mint.com", duration: "2007 – 2008", description: "Early-stage growth lead. Helped grow Mint from launch to acquisition by Intuit for $170M." },
+      { jobTitle: "#30 Employee", company: "Facebook", duration: "2005 – 2006", description: "Early Facebook employee working on growth and monetization in the company's formative years." }
+    ],
+    skills: "Entrepreneurship, Growth Marketing, Content Creation, E-commerce, Product Strategy, Community Building, Public Speaking, Business Development",
+    linkedinUrl: "https://linkedin.com/in/noah-kagan",
+    websiteUrl: "https://noahkagan.com",
+    twitterUrl: "https://twitter.com/noahkagan",
+    githubUrl: "",
+    email: ""
+  },
+  'alexchen': {
+    fullName: "Alexandra Chen",
+    headline: "Senior Product Designer | Design Systems & UX Strategy",
+    photoUrl: "",
+    location: "San Francisco, CA",
+    bio: "Product designer with 8+ years of experience building design systems and consumer products at scale. Previously led the redesign of Stripe's merchant dashboard, improving task completion rates by 34%. Passionate about accessible design, design tokens, and bridging the gap between design and engineering.\n\nCurrently exploring how AI tools can augment the design process without replacing human judgment. Speaker at Config 2025 and author of the \"Practical Design Systems\" newsletter.",
+    experience: [
+      { jobTitle: "Senior Product Designer", company: "Stripe", duration: "2022 – Present", description: "Leading design systems team. Shipped unified component library used by 40+ product teams. Established design token architecture adopted across web and mobile." },
+      { jobTitle: "Product Designer", company: "Figma", duration: "2019 – 2022", description: "Designed collaborative features including branching and component analytics. Contributed to FigJam launch." },
+      { jobTitle: "UX Designer", company: "Dropbox", duration: "2017 – 2019", description: "Redesigned file sharing flows, reducing support tickets by 22%. Built internal design critique tooling." }
+    ],
+    skills: "Product Design, Design Systems, Figma, User Research, Prototyping, Accessibility, Design Tokens, React, CSS",
+    linkedinUrl: "https://linkedin.com/in/alexandrachen",
+    websiteUrl: "https://alexchen.design",
+    twitterUrl: "https://twitter.com/alexchendesign",
+    githubUrl: "",
+    email: "alex@alexchen.design"
+  },
+  'sarahj': {
+    fullName: "Sarah Johnson",
+    headline: "VP of Engineering at Dataflow | Building the future of real-time analytics",
+    photoUrl: "",
+    location: "New York, NY",
+    bio: "Engineering leader with 12+ years of experience scaling teams and systems. Currently leading a 60-person engineering org building real-time data infrastructure processing 2B+ events/day.\n\nPreviously built and led the platform team at Coinbase through hyper-growth (20 → 200 engineers). Deep expertise in distributed systems, event-driven architectures, and building high-performing engineering cultures.\n\nPassionate about mentoring underrepresented engineers and building teams where people do the best work of their careers.",
+    experience: [
+      { jobTitle: "VP of Engineering", company: "Dataflow", duration: "2023 – Present", description: "Leading 60-person engineering org. Architected real-time analytics platform processing 2B+ events/day with 99.99% uptime." },
+      { jobTitle: "Sr. Director of Engineering", company: "Coinbase", duration: "2019 – 2023", description: "Scaled platform team from 20 to 200 engineers. Led infrastructure modernization reducing deploy times by 80%." },
+      { jobTitle: "Engineering Manager", company: "Stripe", duration: "2016 – 2019", description: "Built and led the payments reliability team. Reduced payment failures by 40% through improved retry logic and circuit breakers." },
+      { jobTitle: "Senior Software Engineer", company: "Google", duration: "2013 – 2016", description: "Core contributor to Google Cloud Pub/Sub. Designed the message ordering guarantee system." }
+    ],
+    skills: "Engineering Leadership, Distributed Systems, System Design, Team Building, Kubernetes, Go, Python, Real-time Data, Event-Driven Architecture, Mentorship",
+    linkedinUrl: "https://linkedin.com/in/sarahjohnson",
+    websiteUrl: "",
+    twitterUrl: "https://twitter.com/sarahj_eng",
+    githubUrl: "https://github.com/sarahjeng",
+    email: "sarah@dataflow.io"
+  }
+};
+
+// ═══════════════════════════════════════════
+// CORE LOGIC
+// ═══════════════════════════════════════════
+let currentProfile = null;
+let currentTemplate = 'minimal';
+
+function extractSlug(input) {
+  input = input.trim().replace(/\/+$/, '');
+  // Full URL
+  const match = input.match(/linkedin\.com\/in\/([a-zA-Z0-9_-]+)/);
+  if (match) return match[1].toLowerCase();
+  // Just a slug
+  if (/^[a-zA-Z0-9_-]+$/.test(input)) return input.toLowerCase();
+  return null;
+}
+
+function tryExample(slug) {
+  document.getElementById('linkedin-url').value = 'https://linkedin.com/in/' + slug;
+  go();
+}
+
+function go() {
+  const input = document.getElementById('linkedin-url').value;
+  const slug = extractSlug(input);
+  if (!slug) {
+    document.getElementById('linkedin-url').style.borderColor = '#e63946';
+    setTimeout(() => document.getElementById('linkedin-url').style.borderColor = '', 1500);
+    return;
+  }
+
+  // Show loading
+  document.getElementById('loading').classList.add('show');
+
+  // Simulate API fetch delay
+  setTimeout(() => {
+    // Look up profile or generate a random one from the slug
+    currentProfile = profiles[slug] || generateFromSlug(slug);
+    currentTemplate = 'minimal';
+    showResult();
+  }, 1200);
+}
+
+function generateFromSlug(slug) {
+  // Generate a plausible profile from any slug
+  const name = slug.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const titles = [
+    "Senior Software Engineer", "Product Manager", "Head of Growth",
+    "Staff Engineer", "Director of Marketing", "Founder & CEO",
+    "Principal Designer", "VP of Operations"
+  ];
+  const companies = ["Stripe", "Notion", "Vercel", "Figma", "Shopify", "Airbnb", "Datadog", "Linear"];
+  const pick = (arr) => arr[Math.abs(hashStr(slug)) % arr.length];
+  const pick2 = (arr) => arr[Math.abs(hashStr(slug + '2')) % arr.length];
+  const pick3 = (arr) => arr[Math.abs(hashStr(slug + '3')) % arr.length];
+
+  return {
+    fullName: name,
+    headline: pick(titles) + " at " + pick(companies),
+    photoUrl: "",
+    location: ["San Francisco, CA", "New York, NY", "Austin, TX", "Seattle, WA", "London, UK"][Math.abs(hashStr(slug)) % 5],
+    bio: `Experienced ${pick(titles).toLowerCase()} with a passion for building products that matter. Currently at ${pick(companies)}, previously worked at ${pick2(companies)} and ${pick3(companies)}.\n\nFocused on scaling systems and teams. Believer in shipping fast, learning faster, and always staying curious.`,
+    experience: [
+      { jobTitle: pick(titles), company: pick(companies), duration: "2022 – Present", description: "Leading key initiatives and driving product strategy across multiple teams." },
+      { jobTitle: pick2(titles), company: pick2(companies), duration: "2019 – 2022", description: "Shipped critical features used by millions. Grew team from 5 to 20 engineers." },
+      { jobTitle: "Software Engineer", company: pick3(companies), duration: "2016 – 2019", description: "Full-stack development. Built internal tools that improved team velocity by 3x." }
+    ],
+    skills: "Leadership, Strategy, Product Development, Engineering, Growth, Analytics, Team Building, Communication",
+    linkedinUrl: "https://linkedin.com/in/" + slug,
+    websiteUrl: "",
+    twitterUrl: "",
+    githubUrl: "",
+    email: ""
+  };
+}
+
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
+  return h;
+}
+
+function showResult() {
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('pitch-screen').style.display = 'none';
+  document.getElementById('result-screen').classList.add('show');
+  document.getElementById('result-name').textContent = currentProfile.fullName;
+  document.getElementById('result-link').href = currentProfile.linkedinUrl;
+  // Reset template tabs
+  document.querySelectorAll('.template-tabs button').forEach((b, i) => b.classList.toggle('active', i === 0));
+  renderPreview();
+}
+
+function switchTemplate(name, btn) {
+  currentTemplate = name;
+  document.querySelectorAll('.template-tabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPreview();
+}
+
+function startOver() {
+  document.getElementById('result-screen').classList.remove('show');
+  document.getElementById('pitch-screen').style.display = '';
+  document.getElementById('linkedin-url').value = '';
+  document.getElementById('linkedin-url').focus();
+}
+
+function renderPreview() {
+  const html = generatePage(currentProfile, currentTemplate);
+  const frame = document.getElementById('preview-frame');
+  frame.srcdoc = html;
+}
+
+// ═══════════════════════════════════════════
+// HTML ESCAPE & HELPERS
+// ═══════════════════════════════════════════
+function e(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+// ═══════════════════════════════════════════
+// SVG ICONS
+// ═══════════════════════════════════════════
+const ico = {
+  li: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>',
+  tw: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+  gh: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>',
+  web: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 8L2 4"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+};
+
+function avatar(name, size) {
+  const parts = (name || 'U').split(' ');
+  const initials = (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  const hue = Math.abs(h) % 360;
+  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" rx="${size/2}" fill="hsl(${hue},55%,45%)"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui,sans-serif" font-size="${size*0.38}" font-weight="700" fill="white">${initials}</text></svg>`)}`;
+}
+
+function photoHtml(p, size) {
+  const src = p.photoUrl || avatar(p.fullName, size);
+  return `<img src="${e(src)}" alt="${e(p.fullName)}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;">`;
+}
+
+function linksArr(p) {
+  const a = [];
+  if (p.linkedinUrl) a.push({ u: p.linkedinUrl, i: ico.li, l: 'LinkedIn' });
+  if (p.websiteUrl) a.push({ u: p.websiteUrl, i: ico.web, l: 'Website' });
+  if (p.twitterUrl) a.push({ u: p.twitterUrl, i: ico.tw, l: 'Twitter' });
+  if (p.githubUrl) a.push({ u: p.githubUrl, i: ico.gh, l: 'GitHub' });
+  if (p.email) a.push({ u: 'mailto:' + p.email, i: ico.mail, l: 'Email' });
+  return a;
+}
+
+function bioHtml(text) {
+  return e(text).replace(/\n\n/g, '</p><p style="margin-top:12px;">').replace(/\n/g, '<br>');
+}
+
+// ═══════════════════════════════════════════
+// PAGE GENERATORS
+// ═══════════════════════════════════════════
+
+function generatePage(p, tpl) {
+  if (tpl === 'split') return pageSplit(p);
+  if (tpl === 'card') return pageCard(p);
+  return pageMinimal(p);
+}
+
+// ── MINIMAL ──
+function pageMinimal(p) {
+  const links = linksArr(p);
+  const skills = p.skills ? p.skills.split(',').map(s => s.trim()).filter(Boolean) : [];
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${e(p.fullName)}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fa;color:#1a1a2e;line-height:1.65}
+.hero{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 40%,#0f3460 100%);color:#fff;padding:80px 24px 64px;text-align:center}
+.hero img{margin-bottom:20px;border:4px solid rgba(255,255,255,0.15);box-shadow:0 8px 32px rgba(0,0,0,0.3)}
+.hero h1{font-size:2.6rem;font-weight:900;letter-spacing:-0.03em;margin-bottom:8px}
+.hero .hl{font-size:1.15rem;opacity:0.8;font-weight:400;max-width:600px;margin:0 auto 14px}
+.hero .loc{font-size:0.88rem;opacity:0.5;display:inline-flex;align-items:center;gap:5px}
+.wrap{max-width:720px;margin:0 auto;padding:0 24px}
+section{padding:48px 0}
+section+section{padding-top:0}
+h2{font-size:1.4rem;font-weight:800;margin-bottom:20px;position:relative;padding-bottom:12px}
+h2::after{content:'';position:absolute;bottom:0;left:0;width:40px;height:3.5px;background:#e63946;border-radius:2px}
+.about p{font-size:1.02rem;color:#444;margin-bottom:0}
+.tl{position:relative;padding-left:30px}
+.tl::before{content:'';position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:#e8e8e8}
+.tl-item{position:relative;margin-bottom:30px}
+.tl-item:last-child{margin-bottom:0}
+.tl-item::before{content:'';position:absolute;left:-25px;top:7px;width:10px;height:10px;background:#e63946;border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 0 2px #e63946}
+.tl-item h3{font-size:1.02rem;font-weight:700}
+.tl-item .co{font-size:0.92rem;color:#e63946;font-weight:600}
+.tl-item .dur{font-size:0.8rem;color:#aaa;margin:2px 0 6px}
+.tl-item p{font-size:0.9rem;color:#666}
+.skills{display:flex;flex-wrap:wrap;gap:8px}
+.sk{background:#1a1a2e;color:#fff;padding:7px 18px;border-radius:20px;font-size:0.82rem;font-weight:600;letter-spacing:0.01em}
+.links{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:40px 24px 60px}
+.links a{display:inline-flex;align-items:center;gap:7px;color:#1a1a2e;text-decoration:none;padding:10px 20px;border:1.5px solid #ddd;border-radius:10px;font-size:0.88rem;font-weight:600;transition:all 0.2s;background:#fff}
+.links a:hover{border-color:#e63946;color:#e63946;transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.06)}
+@media(max-width:600px){.hero h1{font-size:1.8rem}.hero{padding:50px 20px 40px}}
+</style></head><body>
+<div class="hero">
+  ${photoHtml(p, 130)}
+  <h1>${e(p.fullName)}</h1>
+  ${p.headline ? `<div class="hl">${e(p.headline)}</div>` : ''}
+  ${p.location ? `<div class="loc">${ico.pin} ${e(p.location)}</div>` : ''}
+</div>
+<div class="wrap">
+  ${p.bio ? `<section class="about"><h2>About</h2><p>${bioHtml(p.bio)}</p></section>` : ''}
+  ${p.experience?.length ? `<section><h2>Experience</h2><div class="tl">${p.experience.map(x => `
+    <div class="tl-item"><h3>${e(x.jobTitle)}</h3><div class="co">${e(x.company)}</div><div class="dur">${e(x.duration)}</div>${x.description ? `<p>${e(x.description)}</p>` : ''}</div>`).join('')}</div></section>` : ''}
+  ${skills.length ? `<section><h2>Skills</h2><div class="skills">${skills.map(s => `<span class="sk">${e(s)}</span>`).join('')}</div></section>` : ''}
+</div>
+${links.length ? `<div class="links">${links.map(l => `<a href="${e(l.u)}" target="_blank" rel="noopener">${l.i} ${l.l}</a>`).join('')}</div>` : ''}
+</body></html>`;
+}
+
+// ── SPLIT ──
+function pageSplit(p) {
+  const links = linksArr(p);
+  const skills = p.skills ? p.skills.split(',').map(s => s.trim()).filter(Boolean) : [];
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${e(p.fullName)}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#333;line-height:1.65}
+.lay{display:flex;min-height:100vh}
+.side{width:340px;background:linear-gradient(180deg,#0c1222 0%,#162032 50%,#1a1a2e 100%);color:#fff;padding:52px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;position:sticky;top:0;height:100vh;overflow-y:auto}
+.side img{margin-bottom:20px;border:4px solid rgba(255,255,255,0.12);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
+.side h1{font-size:1.6rem;font-weight:800;margin-bottom:6px;letter-spacing:-0.02em}
+.side .hl{font-size:0.88rem;opacity:0.7;margin-bottom:10px;line-height:1.5}
+.side .loc{font-size:0.8rem;opacity:0.45;display:inline-flex;align-items:center;gap:4px;margin-bottom:28px}
+.pills{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:28px}
+.pills span{background:rgba(255,255,255,0.08);padding:5px 14px;border-radius:14px;font-size:0.75rem;font-weight:600;letter-spacing:0.01em}
+.slinks{display:flex;flex-direction:column;gap:6px;width:100%;margin-top:auto}
+.slinks a{display:flex;align-items:center;gap:9px;color:#fff;text-decoration:none;padding:10px 16px;border-radius:10px;font-size:0.84rem;font-weight:600;transition:background 0.2s}
+.slinks a:hover{background:rgba(255,255,255,0.08)}
+.main{flex:1;padding:52px 44px;background:#f8f9fa;overflow-y:auto}
+.msec{margin-bottom:44px}
+.main h2{font-size:1.35rem;font-weight:800;margin-bottom:20px;color:#1a1a2e;position:relative;padding-bottom:12px}
+.main h2::after{content:'';position:absolute;bottom:0;left:0;width:40px;height:3.5px;background:#0ea5e9;border-radius:2px}
+.about p{font-size:1rem;color:#555}
+.ec{background:#fff;border-radius:14px;padding:22px;margin-bottom:14px;box-shadow:0 1px 6px rgba(0,0,0,0.05);border-left:3.5px solid #0ea5e9;transition:transform 0.15s}
+.ec:hover{transform:translateX(4px)}
+.ec h3{font-size:1rem;font-weight:700;color:#1a1a2e}
+.ec .co{font-size:0.9rem;color:#0ea5e9;font-weight:600}
+.ec .dur{font-size:0.78rem;color:#aaa;margin:2px 0 8px}
+.ec p{font-size:0.88rem;color:#666}
+@media(max-width:768px){.lay{flex-direction:column}.side{width:100%;height:auto;position:static;padding:36px 24px}.main{padding:32px 24px}}
+</style></head><body>
+<div class="lay">
+  <div class="side">
+    ${photoHtml(p, 120)}
+    <h1>${e(p.fullName)}</h1>
+    ${p.headline ? `<div class="hl">${e(p.headline)}</div>` : ''}
+    ${p.location ? `<div class="loc">${ico.pin} ${e(p.location)}</div>` : ''}
+    ${skills.length ? `<div class="pills">${skills.map(s => `<span>${e(s)}</span>`).join('')}</div>` : ''}
+    <div class="slinks">
+      ${links.map(l => `<a href="${e(l.u)}" target="_blank">${l.i} ${l.l}</a>`).join('\n      ')}
+    </div>
+  </div>
+  <div class="main">
+    ${p.bio ? `<div class="msec about"><h2>About</h2><p>${bioHtml(p.bio)}</p></div>` : ''}
+    ${p.experience?.length ? `<div class="msec"><h2>Experience</h2>${p.experience.map(x => `
+      <div class="ec"><h3>${e(x.jobTitle)}</h3><div class="co">${e(x.company)}</div><div class="dur">${e(x.duration)}</div>${x.description ? `<p>${e(x.description)}</p>` : ''}</div>`).join('')}</div>` : ''}
+  </div>
+</div>
+</body></html>`;
+}
+
+// ── CARD ──
+function pageCard(p) {
+  const links = linksArr(p);
+  const skills = p.skills ? p.skills.split(',').map(s => s.trim()).filter(Boolean) : [];
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${e(p.fullName)}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 50%,#f093fb 100%);color:#333;line-height:1.65;min-height:100vh;padding:48px 20px}
+.w{max-width:680px;margin:0 auto}
+.pc{background:#fff;border-radius:24px;padding:48px 40px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.18);margin-bottom:20px}
+.pc img{margin-bottom:18px;border:4px solid #f0e8fd;box-shadow:0 8px 24px rgba(0,0,0,0.1)}
+.pc h1{font-size:2rem;font-weight:900;color:#1a1a2e;margin-bottom:6px;letter-spacing:-0.02em}
+.pc .hl{font-size:1.02rem;color:#8b5cf6;font-weight:500;margin-bottom:8px}
+.pc .loc{font-size:0.85rem;color:#aaa;display:inline-flex;align-items:center;gap:4px}
+.soc{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.soc a{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;background:#f0e8fd;color:#8b5cf6;text-decoration:none;transition:all 0.2s}
+.soc a:hover{background:#8b5cf6;color:#fff;transform:translateY(-3px);box-shadow:0 6px 16px rgba(139,92,246,0.3)}
+.cd{background:#fff;border-radius:20px;padding:32px;box-shadow:0 12px 40px rgba(0,0,0,0.1);margin-bottom:16px}
+.cd h2{font-size:1.25rem;font-weight:800;margin-bottom:18px;color:#1a1a2e;position:relative;padding-bottom:12px}
+.cd h2::after{content:'';position:absolute;bottom:0;left:0;width:36px;height:3.5px;background:#8b5cf6;border-radius:2px}
+.about p{font-size:0.96rem;color:#555}
+.ei{padding:16px 0;border-bottom:1px solid #f0f0f0}
+.ei:last-child{border-bottom:none;padding-bottom:0}
+.ei h3{font-size:0.98rem;font-weight:700;color:#1a1a2e}
+.ei .co{font-size:0.9rem;color:#8b5cf6;font-weight:600}
+.ei .dur{font-size:0.78rem;color:#bbb;margin:2px 0 6px}
+.ei p{font-size:0.88rem;color:#666}
+.skills{display:flex;flex-wrap:wrap;gap:8px}
+.sk{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:7px 18px;border-radius:20px;font-size:0.8rem;font-weight:600}
+@media(max-width:600px){body{padding:24px 12px}.pc,.cd{padding:28px 22px}.pc h1{font-size:1.5rem}}
+</style></head><body>
+<div class="w">
+  <div class="pc">
+    ${photoHtml(p, 130)}
+    <h1>${e(p.fullName)}</h1>
+    ${p.headline ? `<div class="hl">${e(p.headline)}</div>` : ''}
+    ${p.location ? `<div class="loc">${ico.pin} ${e(p.location)}</div>` : ''}
+    ${links.length ? `<div class="soc">${links.map(l => `<a href="${e(l.u)}" target="_blank" title="${l.l}">${l.i}</a>`).join('')}</div>` : ''}
+  </div>
+  ${p.bio ? `<div class="cd about"><h2>About</h2><p>${bioHtml(p.bio)}</p></div>` : ''}
+  ${p.experience?.length ? `<div class="cd"><h2>Experience</h2>${p.experience.map(x => `
+    <div class="ei"><h3>${e(x.jobTitle)}</h3><div class="co">${e(x.company)}</div><div class="dur">${e(x.duration)}</div>${x.description ? `<p>${e(x.description)}</p>` : ''}</div>`).join('')}</div>` : ''}
+  ${skills.length ? `<div class="cd"><h2>Skills</h2><div class="skills">${skills.map(s => `<span class="sk">${e(s)}</span>`).join('')}</div></div>` : ''}
+</div>
+</body></html>`;
+}
+
+// Enter key triggers generate
+document.getElementById('linkedin-url').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter') go();
+});
+</script>
+</body>
+</html>
